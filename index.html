@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ReservaPlay – protótipo</title>
+<style>
+  :root{--verde:#1f8a4c;--verde-cl:#e3f4ea;--cinza:#9aa0a6;--cinza-cl:#eef0f2;--azul:#1b5fa8;--txt:#1d2329;--sub:#5f6b76;--borda:#d9dee3;--alerta:#b3261e}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:#e9ecef;color:var(--txt);display:flex;justify-content:center;padding:24px 12px}
+  .tel{width:380px;max-width:100%;min-height:720px;background:#fff;border-radius:28px;box-shadow:0 8px 30px rgba(0,0,0,.15);overflow:hidden;display:flex;flex-direction:column;border:1px solid #cfd4d9}
+  header{background:var(--azul);color:#fff;padding:18px 18px 14px}
+  header h1{margin:0;font-size:19px}
+  header p{margin:2px 0 0;font-size:13px;opacity:.85}
+  main{flex:1;padding:16px 18px;overflow:auto}
+  nav{display:flex;border-top:1px solid var(--borda)}
+  nav button{flex:1;padding:12px 4px;border:0;background:#fff;font-size:12.5px;color:var(--sub);cursor:pointer}
+  nav button.on{color:var(--azul);font-weight:600}
+  label{display:block;font-size:13px;color:var(--sub);margin:12px 0 4px}
+  input,select{width:100%;padding:11px 12px;border:1px solid var(--borda);border-radius:10px;font-size:15px}
+  .btn{display:block;width:100%;margin-top:16px;padding:13px;border:0;border-radius:10px;background:var(--azul);color:#fff;font-size:15px;font-weight:600;cursor:pointer}
+  .btn.sec{background:#fff;color:var(--azul);border:1px solid var(--azul)}
+  .btn.perigo{background:#fff;color:var(--alerta);border:1px solid var(--alerta)}
+  .erro{color:var(--alerta);font-size:13px;margin-top:8px;min-height:18px}
+  .dias{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px}
+  .dia{flex:0 0 auto;padding:8px 10px;border:1px solid var(--borda);border-radius:10px;font-size:12.5px;text-align:center;cursor:pointer;background:#fff}
+  .dia.on{background:var(--azul);color:#fff;border-color:var(--azul)}
+  .quadras{display:flex;gap:6px;margin:12px 0}
+  .quadras button{flex:1;padding:8px;border-radius:10px;border:1px solid var(--borda);background:#fff;font-size:13px;cursor:pointer}
+  .quadras button.on{border-color:var(--azul);color:var(--azul);font-weight:600}
+  .grade{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .slot{padding:12px 4px;border-radius:10px;text-align:center;font-size:14px;border:1px solid transparent;cursor:pointer}
+  .livre{background:var(--verde-cl);color:var(--verde);border-color:#b7e1c6}
+  .ocup{background:var(--cinza-cl);color:var(--cinza);cursor:not-allowed}
+  .bloq{background:#f6f1e6;color:#8a6d1f;cursor:not-allowed}
+  .mine{background:#e4eefa;color:var(--azul);border-color:#b6cdea}
+  .leg{display:flex;gap:12px;font-size:12px;color:var(--sub);margin:10px 0 2px;flex-wrap:wrap}
+  .leg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+  .l1::before{background:var(--verde-cl);border:1px solid #b7e1c6}.l2::before{background:var(--cinza-cl)}.l3::before{background:#f6f1e6}.l4::before{background:#e4eefa}
+  .card{border:1px solid var(--borda);border-radius:12px;padding:14px;margin-bottom:10px}
+  .card h3{margin:0 0 4px;font-size:15px}
+  .card p{margin:2px 0;font-size:13px;color:var(--sub)}
+  .ok{text-align:center;padding-top:20px}
+  .ok .big{font-size:44px}
+  .cod{font-family:ui-monospace,Menlo,monospace;background:var(--cinza-cl);padding:4px 8px;border-radius:6px}
+  .aviso{background:#fff7e0;border:1px solid #f0d58a;padding:10px 12px;border-radius:10px;font-size:13px;margin-top:10px}
+  .toast{position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:13px;opacity:0;transition:.3s}
+  .toast.show{opacity:1}
+  .vazio{color:var(--sub);font-size:14px;text-align:center;margin-top:30px}
+  .tag{display:inline-block;font-size:11px;padding:2px 6px;border-radius:6px;background:#f6f1e6;color:#8a6d1f;margin-left:6px}
+</style>
+</head>
+<body>
+<div class="tel">
+  <header><h1>ReservaPlay</h1><p id="sub">Quadras do campus UCB</p></header>
+  <main id="tela"></main>
+  <nav id="nav" style="display:none">
+    <button data-t="agenda">Agenda</button>
+    <button data-t="minhas">Minhas reservas</button>
+    <button data-t="coord" id="navCoord">Coordenação</button>
+    <button data-t="sair">Sair</button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const QUADRAS = ['Quadra 1','Quadra 2','Society'];
+const HORAS = ['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00'];
+const NOMES = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+const hoje = new Date(); hoje.setHours(0,0,0,0);
+const dias = Array.from({length:7},(_,i)=>{const d=new Date(hoje);d.setDate(d.getDate()+i);return d;});
+const chave = (d,q,h)=>d.toISOString().slice(0,10)+'|'+q+'|'+h;
+
+let usuario=null, perfil='aluno', diaSel=0, quadSel=0, tentativas=0, slotSel=null, ultimo=null;
+const reservas = {};   // chave -> {dono, codigo}
+const bloqueios = {};  // chave -> motivo
+// dados de exemplo: alguns horários já ocupados por outros grupos e aulas de Ed. Física às terças e quintas
+dias.forEach((d,i)=>{
+  QUADRAS.forEach((q,qi)=>{
+    HORAS.forEach((h,hi)=>{ if((hi*7+qi*3+i*5)%9===0) reservas[chave(d,q,h)]={dono:'outro',codigo:'X'}; });
+  });
+  if(d.getDay()===2||d.getDay()===4){ ['08:00','09:00','10:00'].forEach(h=>bloqueios[chave(d,'Quadra 1',h)]='Aula de Ed. Física'); }
+});
+
+const $=s=>document.querySelector(s), tela=$('#tela');
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200);}
+function minhas(){return Object.entries(reservas).filter(([k,v])=>v.dono===usuario);}
+function fmt(d){return NOMES[d.getDay()]+' '+String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0');}
+function nav(t){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));}
+
+function login(){
+  $('#nav').style.display='none'; $('#sub').textContent='Quadras do campus UCB';
+  tela.innerHTML=`<h2 style="font-size:18px;margin:8px 0 2px">Entrar</h2>
+  <p style="font-size:13px;color:var(--sub);margin:0">Use seu e-mail institucional.</p>
+  <label>E-mail</label><input id="em" placeholder="nome@p.ucb.br" value="lucas@p.ucb.br">
+  <label>Senha</label><input id="pw" type="password" value="123456">
+  <div class="erro" id="err"></div>
+  <button class="btn" id="ent">Entrar</button>
+  <p style="font-size:12px;color:var(--sub);margin-top:18px">Dica para a demo: use <b>marcia@ucb.br</b> para entrar com perfil de coordenação. Um e-mail de outro domínio mostra a mensagem de erro.</p>`;
+  $('#ent').onclick=()=>{
+    const em=$('#em').value.trim().toLowerCase();
+    if(tentativas>=5){$('#err').textContent='Muitas tentativas. Tente de novo em 10 minutos.';return;}
+    if(!/@(p\.)?ucb\.br$/.test(em)){tentativas++;$('#err').textContent='Use seu e-mail institucional (@ucb.br ou @p.ucb.br).';return;}
+    if(!$('#pw').value){tentativas++;$('#err').textContent='Informe a senha.';return;}
+    usuario=em; perfil=em.endsWith('@ucb.br')&&!em.endsWith('@p.ucb.br')?'coord':'aluno';
+    $('#navCoord').style.display=perfil==='coord'?'':'none';
+    $('#nav').style.display='flex'; agenda();
+  };
+}
+
+function agenda(){
+  nav('agenda'); $('#sub').textContent='Olá, '+usuario.split('@')[0]+(perfil==='coord'?' (coordenação)':'');
+  const d=dias[diaSel], q=QUADRAS[quadSel];
+  tela.innerHTML=`<div class="dias">${dias.map((x,i)=>`<div class="dia ${i===diaSel?'on':''}" data-i="${i}">${NOMES[x.getDay()]}<br><b>${x.getDate()}</b></div>`).join('')}</div>
+  <div class="quadras">${QUADRAS.map((x,i)=>`<button class="${i===quadSel?'on':''}" data-q="${i}">${x}</button>`).join('')}</div>
+  <div class="grade">${HORAS.map(h=>{const k=chave(d,q,h);let c='livre',t=h;
+     if(bloqueios[k]){c='bloq';t='🔒 '+h;} else if(reservas[k]){c=reservas[k].dono===usuario?'mine':'ocup';}
+     return `<div class="slot ${c}" data-h="${h}" title="${bloqueios[k]||''}">${t}</div>`;}).join('')}</div>
+  <div class="leg"><span class="l1">Livre</span><span class="l2">Reservado</span><span class="l3">Bloqueado</span><span class="l4">Sua reserva</span></div>`;
+  tela.querySelectorAll('.dia').forEach(e=>e.onclick=()=>{diaSel=+e.dataset.i;agenda();});
+  tela.querySelectorAll('.quadras button').forEach(e=>e.onclick=()=>{quadSel=+e.dataset.q;agenda();});
+  tela.querySelectorAll('.slot.livre').forEach(e=>e.onclick=()=>confirmar(e.dataset.h));
+  tela.querySelectorAll('.slot.bloq').forEach(e=>e.onclick=()=>toast(e.title));
+}
+
+function confirmar(h){
+  const d=dias[diaSel], q=QUADRAS[quadSel];
+  tela.innerHTML=`<h2 style="font-size:18px">Confirmar reserva</h2>
+  <div class="card"><h3>${q}</h3><p>${fmt(d)} · ${h} às ${String(+h.slice(0,2)+1).padStart(2,'0')}:00</p></div>
+  <p style="font-size:13px;color:var(--sub)">Você pode ter até 2 reservas futuras. Se o jogo não acontecer, cancele para liberar a quadra.</p>
+  <button class="btn" id="ok">Confirmar</button><button class="btn sec" id="volta">Voltar</button>`;
+  $('#volta').onclick=agenda;
+  $('#ok').onclick=()=>{
+    const k=chave(d,q,h);
+    if(reservas[k]){toast('Esse horário acabou de ser reservado.');agenda();return;}
+    if(minhas().length>=2){toast('Você já tem 2 reservas futuras.');agenda();return;}
+    const codigo='RP-'+Math.random().toString(36).slice(2,7).toUpperCase();
+    reservas[k]={dono:usuario,codigo}; ultimo={k,q,d,h,codigo}; sucesso();
+  };
+}
+
+function sucesso(){
+  const u=ultimo;
+  tela.innerHTML=`<div class="ok"><div class="big">✅</div><h2 style="font-size:19px">Reserva confirmada!</h2>
+  <p>${u.q} · ${fmt(u.d)} · ${u.h}</p><p>Código: <span class="cod">${u.codigo}</span></p></div>
+  <button class="btn" id="comp">Compartilhar com a galera</button><button class="btn sec" id="volta">Ver agenda</button>`;
+  $('#volta').onclick=agenda;
+  $('#comp').onclick=()=>{const link='reservaplay.app/r/'+u.codigo;
+    try{navigator.clipboard.writeText(link);}catch(e){}
+    toast('Link copiado: '+link);};
+}
+
+function minhasTela(){
+  nav('minhas');
+  const l=minhas();
+  if(!l.length){tela.innerHTML='<div class="vazio">Você ainda não tem reservas.<br>Escolha um horário verde na agenda.</div>';return;}
+  tela.innerHTML='<h2 style="font-size:18px">Minhas reservas</h2>'+l.sort().map(([k,v])=>{const [dt,q,h]=k.split('|');const d=new Date(dt+'T00:00');
+    return `<div class="card"><h3>${q}</h3><p>${fmt(d)} · ${h}</p><p>Código: <span class="cod">${v.codigo}</span></p><button class="btn perigo" data-k="${k}" style="margin-top:10px;padding:9px">Cancelar reserva</button></div>`;}).join('');
+  tela.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{
+    if(!b.dataset.c){b.dataset.c='1';b.textContent='Toque de novo para confirmar o cancelamento';return;}
+    delete reservas[b.dataset.k];toast('Reserva cancelada. O horário voltou a ficar livre.');minhasTela();
+  });
+}
+
+function coord(){
+  nav('coord');
+  tela.innerHTML=`<h2 style="font-size:18px">Bloquear horários</h2>
+  <label>Quadra</label><select id="bq">${QUADRAS.map(q=>`<option>${q}</option>`).join('')}</select>
+  <label>Dia</label><select id="bd">${dias.map((d,i)=>`<option value="${i}">${fmt(d)}</option>`).join('')}</select>
+  <label>Horário</label><select id="bh">${HORAS.map(h=>`<option>${h}</option>`).join('')}</select>
+  <label>Motivo</label><select id="bm"><option>Aula de Ed. Física</option><option>Manutenção</option><option>Evento</option></select>
+  <label style="display:flex;align-items:center;gap:8px"><input type="checkbox" id="rep" style="width:auto"> Repetir toda semana</label>
+  <div id="av"></div>
+  <button class="btn" id="bb">Bloquear</button>`;
+  $('#bb').onclick=()=>{
+    const q=$('#bq').value, d=dias[+$('#bd').value], h=$('#bh').value, k=chave(d,q,h);
+    if(reservas[k]&&!$('#av').dataset.ok){$('#av').innerHTML='<div class="aviso">Já existe uma reserva nesse horário. Clique em Bloquear de novo para confirmar; o grupo será avisado.</div>';$('#av').dataset.ok='1';return;}
+    delete reservas[k]; bloqueios[k]=$('#bm').value; $('#av').dataset.ok='';
+    toast('Horário bloqueado'+($('#rep').checked?' toda semana':'')+'.'); coord();
+  };
+}
+
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.t; if(t==='agenda')agenda(); else if(t==='minhas')minhasTela(); else if(t==='coord')coord(); else {usuario=null;tentativas=0;login();}
+});
+login();
+</script>
+</body>
+</html>
